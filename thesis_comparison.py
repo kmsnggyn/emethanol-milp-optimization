@@ -57,31 +57,16 @@ def run_thesis_comparison():
     fixed_costs = params["Annualized_CAPEX"] + params["OPEX_Fixed"]
     profit_100 = revenue_100 - elec_cost_100 - co2_cost_100 - var_opex_100 - fixed_costs
     
-    # Always 10%
-    revenue_10 = len(prices) * params["M_10"] * params["Price_Methanol"]
-    elec_cost_10 = sum(params["P_10"] * price for price in prices)
-    co2_cost_10 = len(prices) * params["C_10"] * params["Price_CO2"]
-    var_opex_10 = len(prices) * params["OPEX_Variable"]
-    profit_10 = revenue_10 - elec_cost_10 - co2_cost_10 - var_opex_10 - fixed_costs
-    
     results['steady_100'] = {
         'name': 'Always 100%',
         'capacity_factor': 100.0,
         'ramp_events': 0,
         'annual_profit': profit_100,
-        'description': 'Continuous operation at full capacity'
-    }
-    
-    results['steady_10'] = {
-        'name': 'Always 10%',
-        'capacity_factor': 10.0,
-        'ramp_events': 0,
-        'annual_profit': profit_10,
-        'description': 'Continuous operation at minimum turndown'
+        'description': 'Continuous operation at full capacity (baseline)'
     }
     
     print(f"Always 100%: CF=100.0%, Profit=€{profit_100:,.0f}, Ramps=0")
-    print(f"Always 10%:  CF=10.0%, Profit=€{profit_10:,.0f}, Ramps=0")
+    print(f"Note: 10% steady-state operation excluded (economically irrational)")
     
     # ==========================================
     # SCENARIO 2: PERFECT FORESIGHT
@@ -145,7 +130,7 @@ def run_thesis_comparison():
     print("="*80)
     
     # Create summary table
-    summary_scenarios = ['steady_100', 'steady_10', 'perfect_foresight', 'mpc_24h']
+    summary_scenarios = ['steady_100', 'perfect_foresight', 'mpc_24h']
     
     print(f"{'Scenario':<25} {'Capacity Factor':<15} {'Ramp Events':<12} {'Annual Profit':<15} {'Profit Rank':<12}")
     print("-" * 85)
@@ -193,18 +178,20 @@ def run_thesis_comparison():
         print(f"   - MPC (24h horizon): {mpc['ramp_events']} ramp events")
         print(f"   - Limited forecast {'' if ramp_gap >= 0 else 'increases' if ramp_gap < -10 else 'slightly affects'} ramping frequency")
         
-        print(f"\n4. Economic Viability:")
+        print(f"\n3. Economic Insight:")
+        print(f"   - Always 100% baseline: €{results['steady_100']['annual_profit']:,.0f}")
+        print(f"   - Perfect foresight optimization adds: €{pf['annual_profit'] - results['steady_100']['annual_profit']:,.0f}")
+        print(f"   - MPC (24h) vs baseline: €{mpc['annual_profit'] - results['steady_100']['annual_profit']:,.0f}")
+        
+        print(f"\n4. Practical Trade-offs:")
         best_profit = max(r['annual_profit'] for r in results.values() if r is not None)
-        worst_profit = min(r['annual_profit'] for r in results.values() if r is not None)
-        print(f"   - Best case profit: €{best_profit:,.0f}")
-        print(f"   - Worst case profit: €{worst_profit:,.0f}")
-        print(f"   - Total profit range: €{best_profit - worst_profit:,.0f}")
+        print(f"   - Best achievable profit: €{best_profit:,.0f}")
         
         if best_profit > 0:
             print(f"   ✓ Profitable operations possible under optimal conditions")
         else:
-            print(f"   ⚠ All scenarios show negative profitability with current parameters")
-            print(f"     Consider: lower CAPEX, higher methanol prices, or lower electricity costs")
+            print(f"   ⚠ All operational strategies show negative profitability")
+            print(f"     Economic viability requires: lower CAPEX, higher methanol prices, or cheaper electricity")
     
     # Create thesis plots
     create_thesis_plots(results, prices, breakeven_price)
@@ -236,11 +223,11 @@ def create_thesis_plots(results, prices, breakeven_price):
     cfs = []
     colors = []
     
-    for key in ['steady_100', 'steady_10', 'perfect_foresight', 'mpc_24h']:
+    for key in ['steady_100', 'perfect_foresight', 'mpc_24h']:
         if results[key] is not None:
             scenarios.append(results[key]['name'])
             cfs.append(results[key]['capacity_factor'])
-            colors.append(['blue', 'red', 'green', 'orange'][len(scenarios)-1])
+            colors.append(['blue', 'green', 'orange'][len(scenarios)-1])
     
     bars1 = ax1.bar(scenarios, cfs, color=colors, alpha=0.7, edgecolor='black')
     ax1.set_ylabel('Capacity Factor (%)')
@@ -255,7 +242,7 @@ def create_thesis_plots(results, prices, breakeven_price):
     
     # Plot 2: Annual Profit Comparison
     ax2 = axes[0, 1]
-    profits = [results[key]['annual_profit']/1e6 for key in ['steady_100', 'steady_10', 'perfect_foresight', 'mpc_24h'] 
+    profits = [results[key]['annual_profit']/1e6 for key in ['steady_100', 'perfect_foresight', 'mpc_24h'] 
                if results[key] is not None]
     
     bars2 = ax2.bar(scenarios, profits, color=colors, alpha=0.7, edgecolor='black')
@@ -275,7 +262,7 @@ def create_thesis_plots(results, prices, breakeven_price):
     
     # Plot 3: Operational Flexibility (Ramp Events)
     ax3 = axes[1, 0]
-    ramps = [results[key]['ramp_events'] for key in ['steady_100', 'steady_10', 'perfect_foresight', 'mpc_24h'] 
+    ramps = [results[key]['ramp_events'] for key in ['steady_100', 'perfect_foresight', 'mpc_24h'] 
              if results[key] is not None]
     
     bars3 = ax3.bar(scenarios, ramps, color=colors, alpha=0.7, edgecolor='black')
