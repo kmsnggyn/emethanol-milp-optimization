@@ -53,17 +53,12 @@ def plot_capacity_over_year(results):
     plt.ylim(0, 110)
     plt.grid(True, alpha=0.3)
     
-    # Add horizontal lines for reference
-    plt.axhline(y=100, color='red', linestyle='--', alpha=0.5, label='100% Capacity')
-    plt.axhline(y=10, color='orange', linestyle='--', alpha=0.5, label='10% Capacity')
-    
     # Format x-axis to show months
     import matplotlib.dates as mdates
     plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b'))
     plt.gca().xaxis.set_minor_locator(mdates.WeekdayLocator())
     
-    plt.legend()
     plt.tight_layout()
     
     # Save the plot
