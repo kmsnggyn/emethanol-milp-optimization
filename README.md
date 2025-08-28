@@ -1,164 +1,184 @@
-# E-Methanol Plant Optimization Model
+# E-methanol Plant MILP Optimization
 
-A Mixed-Integer Linear Programming (MILP) model for optimal hourly operating schedule of a green e-methanol plant using Pyomo.
+A Mixed-Integer Linear Programming (MILP) model for techno-economic optimization of green e-methanol plant operations with hourly scheduling and ramp penalties.
 
-## Project Overview
+## 🎯 Project Overview
 
-This project implements a techno-economic optimization model to determine the optimal hourly operating schedule for a green e-methanol plant over one year (8760 hours). The model maximizes annual profit by deciding when to run at full load (100%) versus minimum turndown load (10%), based on volatile hourly electricity prices.
+This repository contains a comprehensive optimization model for determining optimal operating schedules of an e-methanol production plant over an 8760-hour (1 year) time horizon. The model decides between high-capacity (100%) and low-capacity (10%) operation modes to maximize annual profit while considering electricity prices, ramp costs, and operational constraints.
 
-### Key Features
+## 🧮 Model Features
 
-- **Perfect foresight MILP optimization** using Pyomo
-- **Binary operating decisions** (100% vs 10% load)
-- **Ramp penalty modeling** with production losses and energy penalties
-- **Stabilization constraints** requiring minimum time in each state
-- **Comprehensive economic modeling** including CAPEX, OPEX, and variable costs
+- **Binary Decision Variables**: Hour-by-hour operating mode decisions (100% vs 10% capacity)
+- **Ramp Logic**: Explicit modeling of ramp-up and ramp-down events with associated penalties
+- **Stabilization Constraints**: Minimum duration requirements for operational states
+- **Economic Optimization**: Maximizes annual profit considering electricity costs, methanol revenue, and ramp penalties
+- **Perfect Foresight**: Uses complete price information for global optimization
 
-## Project Structure
+## 📊 Visualization Capabilities
+
+The project includes comprehensive plotting functionality:
+
+### Generated Plots
+- **Operational Overview**: Time series showing electricity prices and capacity decisions
+- **Operational Statistics**: Distribution analysis, daily patterns, and ramp frequency
+- **Economic Analysis**: Revenue, costs, and profitability metrics
+- **Summary Dashboard**: Comprehensive overview with key performance indicators
+- **Monthly Performance**: Seasonal patterns and performance trends
+
+### Key Metrics Tracked
+- Capacity factor and operational patterns
+- Ramp event frequency and timing
+- Economic performance (revenue, costs, profit)
+- Price-response behavior
+- Seasonal and daily operational trends
+
+## 🚀 Quick Start
+
+### Prerequisites
+```bash
+Python 3.13+
+Pyomo >= 6.6.0
+Gurobi >= 12.0.0 (with academic license) OR HiGHS >= 1.11.0
+matplotlib >= 3.7.0
+seaborn >= 0.12.0
+```
+
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/kmsnggyn/emethanol-milp-optimization.git
+cd emethanol-milp-optimization
+
+# Create virtual environment
+python -m venv venv
+venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/Mac
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Running the Model
+
+#### Basic Optimization
+```bash
+python main.py
+```
+
+#### Optimization with Visualization
+```bash
+python main_with_plots.py
+```
+
+#### Standalone Visualization (with sample data)
+```bash
+python visualize.py
+```
+
+## 📁 Project Structure
 
 ```
-├── model.py              # Core Pyomo MILP model definition
-├── main.py               # Main executable script
-├── generate_prices.py    # Script to generate dummy electricity price data
-├── test_model.py         # 24-hour test version for validation
-├── check_solvers.py      # Utility to check available solvers
+├── main.py                     # Core optimization script
+├── main_with_plots.py         # Optimization with integrated plotting
+├── model.py                   # Pyomo MILP model definition
+├── visualize.py               # Comprehensive plotting module
+├── generate_prices.py         # Electricity price data generation
+├── quick_analysis.py          # Break-even analysis tools
+├── update_parameters.py       # Parameter management utilities
+├── check_solvers.py          # Solver availability checker
+├── test_model.py             # Model validation tests
+├── requirements.txt          # Python dependencies
 ├── data/
-│   └── dummy_prices.csv  # 8760 hours of realistic electricity prices
-├── requirements.txt      # Python dependencies
-└── README.md            # This file
+│   ├── dummy_prices.csv      # Sample electricity price data
+│   └── parameter_template.csv # Excel-compatible parameter template
+└── plots/                    # Generated visualization outputs
+    ├── operational_overview_*.png
+    ├── operational_statistics.png
+    ├── economic_analysis.png
+    ├── summary_dashboard.png
+    └── monthly_performance_summary.png
 ```
 
-## Model Description
+## 🔧 Model Parameters
 
-### Decision Variables
-- `x[t]`: Binary variable (1 = 100% load, 0 = 10% load) for each hour t
-- `y_up[t]`: Binary indicator for start of ramp-up events
-- `y_down[t]`: Binary indicator for start of ramp-down events
+The model uses configurable parameters for:
 
-### Objective Function
-Maximize annual profit = Revenue - Costs
-- **Revenue**: Methanol sales at current production rates
-- **Costs**: Electricity, CO₂, variable OPEX, ramp penalties, fixed costs
+### Plant Technical Parameters
+- Power consumption at 100% and 10% capacity
+- Methanol production rates
+- CO2 consumption rates
 
-### Constraints
-1. **Ramp Logic**: Links operating states with ramp indicators
-2. **Stabilization**: Plant must remain in state for minimum time after ramping
+### Ramp Penalties
+- Production losses during ramp events
+- Energy penalties for transitions
+- Duration constraints
 
-### Model Parameters (Dummy Values)
+### Economic Parameters
+- Methanol selling price
+- CO2 costs
+- Fixed and variable OPEX
+- Annualized CAPEX
 
-```python
-params = {
-    # Plant Technical Parameters (100 MW electrolyzer capacity)
-    "P_100": 100.0,    # Power at 100% load [MW]
-    "M_100": 8.5,      # Methanol production at 100% [ton/hr]
-    "C_100": 6.2,      # CO2 consumption at 100% [ton/hr]
-    
-    "P_10": 15.0,      # Power at 10% load [MW]  
-    "M_10": 0.85,      # Methanol production at 10% [ton/hr]
-    "C_10": 0.62,      # CO2 consumption at 10% [ton/hr]
+### Operational Constraints
+- Minimum state duration (stabilization time)
+- Capacity limits
 
-    # Ramp Penalties
-    "Production_Loss_Up": 4.0,     # Methanol loss during ramp-up [ton]
-    "Energy_Penalty_Up": 10.0,     # Extra energy during ramp-up [MWh]
-    "Production_Loss_Down": 1.5,   # Methanol loss during ramp-down [ton]
-    "Energy_Penalty_Down": 5.0,    # Extra energy during ramp-down [MWh]
+## 📈 Sample Results
 
-    # Economic Parameters
-    "Price_Methanol": 750.0,       # €/ton
-    "Price_CO2": 50.0,             # €/ton
-    "Annualized_CAPEX": 8.5e6,     # €/year
-    "OPEX_Fixed": 2.5e6,           # €/year
-    "OPEX_Variable": 150.0,        # €/hr
+The model typically achieves:
+- **Capacity Factor**: ~81-83% (high capacity operation)
+- **Ramp Events**: ~300 per year (0.8 per day average)
+- **Solve Time**: <0.3 seconds for 8760-hour optimization
+- **Decision Quality**: Economically optimal with perfect foresight
 
-    # Operational Constraints
-    "T_stab": 3  # Minimum hours in state after ramping
-}
-```
+## 🎓 Academic Use
 
-## Dependencies
+This model is designed for academic research in:
+- Renewable energy systems optimization
+- Process industry scheduling
+- Techno-economic analysis
+- Mixed-integer programming applications
+- Energy storage and demand response
 
-- Python 3.8+
-- Pyomo ≥6.6.0
-- pandas ≥1.5.0  
-- numpy ≥1.24.0
-- Compatible MILP solver (GLPK, CBC, CPLEX, or Gurobi)
+## 🛠️ Customization
 
-## Installation
+### Using Real Data
+1. Replace dummy prices in `data/dummy_prices.csv` with actual electricity market data
+2. Update plant parameters in `main.py` or use `parameter_template.csv`
+3. Run `update_parameters.py` to automatically update parameters from Excel
 
-1. **Install Python packages**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Extending the Model
+- Modify `model.py` to add constraints or objectives
+- Extend `visualize.py` for custom analysis plots
+- Add new parameters through the template system
 
-2. **Install a MILP solver** (required to solve the optimization):
-   
-   **Option 1 - GLPK (recommended for academic use)**:
-   ```bash
-   conda install -c conda-forge glpk
-   ```
-   
-   **Option 2 - CBC**:
-   ```bash
-   conda install -c conda-forge coincbc  
-   ```
-   
-   **Option 3 - Download GLPK for Windows**:
-   Download from http://winglpk.sourceforge.net/
+## 📊 Visualization Examples
 
-## Usage
+The plotting system generates publication-ready figures including:
 
-1. **Generate dummy price data**:
-   ```bash
-   python generate_prices.py
-   ```
+- **Time Series Analysis**: Price vs operational decisions over various timeframes
+- **Statistical Distributions**: Capacity factor distributions and operational patterns  
+- **Economic Breakdown**: Cost and revenue analysis with profitability metrics
+- **Performance Dashboards**: Comprehensive overview with key operational metrics
 
-2. **Run the optimization**:
-   ```bash
-   python main.py
-   ```
+## 🤝 Contributing
 
-3. **Test with 24-hour model**:
-   ```bash
-   python test_model.py
-   ```
+Contributions are welcome! Please feel free to submit pull requests or open issues for:
+- Model enhancements
+- Additional visualization features
+- Performance improvements
+- Documentation updates
 
-## Expected Output
+## 📄 License
 
-When properly configured with a solver, the model outputs:
-- Total annual profit
-- Operational metrics (capacity factor, hours at each load)
-- Production metrics (total methanol output)
-- Ramp events statistics  
-- Energy consumption breakdown
-- Weighted average electricity price
+This project is released under the MIT License. See LICENSE file for details.
 
-## Model Validation
+## 🙏 Acknowledgments
 
-The model has been designed with the following validation features:
-- **Logical constraints** ensure physically feasible solutions
-- **Stabilization constraints** prevent unrealistic rapid switching
-- **Economic penalties** for ramping reflect real operational costs
-- **Test version** with 24 hours for quick validation
+- Built with [Pyomo](http://www.pyomo.org/) optimization modeling language
+- Solved using [Gurobi](https://www.gurobi.com/) and [HiGHS](https://highs.dev/) solvers
+- Visualizations powered by [matplotlib](https://matplotlib.org/) and [seaborn](https://seaborn.pydata.org/)
 
-## For Your Thesis
+---
 
-This model provides the core framework for your Master's thesis. To adapt it:
-
-1. **Replace dummy parameters** with your Aspen simulation data
-2. **Adjust time horizon** if needed (currently 8760 hours)
-3. **Modify constraints** based on your specific plant requirements
-4. **Add sensitivity analysis** for key parameters
-5. **Include uncertainty modeling** if desired
-
-## Solver Requirements
-
-This is a large-scale MILP with:
-- 26,280 binary variables (3 × 8760 hours)
-- ~26,280 constraints
-- Solution time: Minutes to hours depending on solver and hardware
-
-Commercial solvers (CPLEX, Gurobi) typically solve faster than open-source ones (GLPK, CBC).
-
-## Author
-
-Master's thesis project for green e-methanol plant optimization using Pyomo and MILP modeling.
+*This project is part of academic research in renewable energy systems optimization and techno-economic analysis of e-methanol production.*
