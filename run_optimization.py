@@ -21,7 +21,7 @@ import time
 
 def run_perfect_optimization():
     """Run optimization with perfect knowledge of all electricity prices."""
-    
+
     print("E-METHANOL PLANT OPTIMIZATION")
     print("=" * 50)
     print("Perfect Forecast Analysis - Complete Price Knowledge")
@@ -56,8 +56,8 @@ def run_perfect_optimization():
     
     if termination_condition != "optimal":
         print("ERROR: Optimization did not find optimal solution!")
-        return None
-    
+            return None
+            
     # Extract results
     print("Extracting optimization results...")
     
@@ -232,9 +232,9 @@ def create_optimization_plot(prices, x_100_values, x_10_values, params):
     ax2.set_title('Power Consumption Profile')
     ax2.grid(True, alpha=0.3)
     ax2.legend()
-    
-    plt.tight_layout()
-    plt.savefig('optimization_results.png', dpi=300, bbox_inches='tight')
+        
+        plt.tight_layout()
+        plt.savefig('optimization_results.png', dpi=300, bbox_inches='tight')
     print("Optimization visualization saved as 'optimization_results.png'")
     
     return fig
@@ -288,8 +288,8 @@ def main():
     
     if results:
         # Show key results
-        show_key_results()
-        
+    show_key_results()
+    
         print("\nOPTIMIZATION COMPLETE")
         print("=" * 50)
         print("This represents the theoretical maximum profit achievable")

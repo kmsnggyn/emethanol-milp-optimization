@@ -61,12 +61,12 @@ def load_data():
     print(f"Loading 2023 electricity data from {data_file}...")
     df = pd.read_excel(data_file)
     
-    # Use SE3 (Swedish zone 3) prices, skip first row (metadata)
-    price_series = df['SE3'].iloc[1:]
+    # Use SE3 (Swedish zone 3) prices, exactly 8760 hours starting from 2.01
+    price_series = df['SE3'].iloc[0:8762]  # Take 8762 entries to get 8760 clean values starting from 2.01
     prices = price_series.dropna().tolist()
-    prices = [float(p) for p in prices if isinstance(p, (int, float)) and not pd.isna(p) and p > 0]
+    prices = [float(p) for p in prices if isinstance(p, (int, float)) and not pd.isna(p)]  # Include zero and negative prices
     
-    print(f"  elspot_prices_2023.xlsx: {len(prices)} prices from column 'SE3'")
+    print(f"  elspot_prices_2023.xlsx: {len(prices)} prices from column 'SE3' (starting from 2.01)")
     print(f"Total loaded: {len(prices)} hours of 2023 electricity price data")
     print(f"Price range: {min(prices):.2f} - {max(prices):.2f} €/MWh")
     

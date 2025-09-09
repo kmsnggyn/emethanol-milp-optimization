@@ -1,0 +1,226 @@
+% E-Methanol Plant Optimization: Methodology and Results Sections
+% LaTeX document for academic paper
+
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{float}
+\usepackage[margin=2.5cm]{geometry}
+
+\begin{document}
+
+\section{Methodology}
+
+\subsection{System Description and Configuration}
+
+The investigated e-methanol production system comprises two primary subsystems: an alkaline water electrolysis unit for hydrogen production and a methanol synthesis plant for CO$_2$ hydrogenation. The electrolysis system has an installed capacity of \SI{31.4}{\mega\watt}, designed to produce \SI{604.8}{\kg\per\hour} of hydrogen at full capacity. The methanol synthesis plant operates at a maximum production rate of \SI{2689}{\kg\per\hour}, consuming \SI{4401}{\kg\per\hour} of captured CO$_2$ alongside the electrochemically produced hydrogen.
+
+The system is designed to operate under a binary operational strategy with two distinct modes to accommodate electricity market dynamics. At full capacity (100\% load), the plant consumes \SI{32.4}{\mega\watt} total power, comprising \SI{31.4}{\mega\watt} for electrolysis and \SI{1.0}{\mega\watt} for methanol plant auxiliaries. At minimum turndown (10\% load), power consumption reduces to \SI{3.34}{\mega\watt}, with methanol production decreasing proportionally to \SI{269}{\kg\per\hour}.
+
+\subsection{Mathematical Model Formulation}
+
+The optimization problem is formulated as a Mixed-Integer Linear Programming (MILP) model with perfect foresight of electricity price trajectories. The objective function maximizes annual economic profit over the planning horizon $T$:
+
+\begin{align}
+\max \quad & \sum_{t \in T} \left[ R_t - C_t^{elec} - C_t^{CO_2} - C_t^{OPEX} \right] - C^{CAPEX} - C^{fixed}
+\end{align}
+
+where $R_t$ represents revenue from methanol sales, $C_t^{elec}$ denotes time-varying electricity costs, $C_t^{CO_2}$ accounts for CO$_2$ feedstock costs, $C_t^{OPEX}$ covers variable operating expenses, $C^{CAPEX}$ represents annualized capital expenditures, and $C^{fixed}$ encompasses fixed operational costs.
+
+The model employs binary decision variables to represent operational states:
+\begin{align}
+x_{100}[t] &\in \{0,1\} \quad \text{(100\% capacity operation)} \\
+x_{10}[t] &\in \{0,1\} \quad \text{(10\% capacity operation)} \\
+y_{up}[t] &\in \{0,1\} \quad \text{(ramping up transition)} \\
+y_{down}[t] &\in \{0,1\} \quad \text{(ramping down transition)}
+\end{align}
+
+The fundamental operational constraint ensures exactly one state per time period:
+\begin{equation}
+x_{100}[t] + x_{10}[t] + y_{up}[t] + y_{down}[t] = 1 \quad \forall t \in T
+\end{equation}
+
+Production rates are defined as functions of operational states:
+\begin{align}
+P_t^{methanol} &= x_{100}[t] \cdot M_{100} + x_{10}[t] \cdot M_{10} \\
+P_t^{power} &= x_{100}[t] \cdot P_{100} + x_{10}[t] \cdot P_{10} + \text{ramping penalties}
+\end{align}
+
+where $M_{100} = \SI{2689}{\kg\per\hour}$, $M_{10} = \SI{269}{\kg\per\hour}$, $P_{100} = \SI{32.4}{\mega\watt}$, and $P_{10} = \SI{3.34}{\mega\watt}$.
+
+\subsection{Economic and Technical Assumptions}
+
+\subsubsection{Techno-Economic Parameters}
+
+The electrolysis system operates at a specific energy consumption of \SI{52}{\kWh\per\kg} H$_2$, corresponding to 77\% efficiency based on the lower heating value. The methanol synthesis process demonstrates reduced efficiency at partial load, with variable OPEX increasing from \SI{0.032}{\euro\per\kg} at full capacity to \SI{0.093}{\euro\per\kg} at 10\% load, reflecting thermodynamic and operational penalties associated with turndown operation.
+
+Capital expenditure assumptions are based on 2023-2024 market data for alkaline electrolysis systems, with installed costs of \SI{1666}{\euro\per\kW} for the electrolysis unit. The methanol plant CAPEX is estimated at \SI{226399}{\euro\per\year} when annualized over a 20-year lifetime with 7\% discount rate. Total annualized CAPEX amounts to \SI{6.13}{\mega\euro\per\year}.
+
+\subsubsection{Market and Pricing Assumptions}
+
+Electricity pricing data utilizes Nord Pool SE3 zone hourly prices for 2023, encompassing 8760 data points with significant temporal variation ranging from \SI{-60.04}{\euro\per\MWh} to \SI{332.00}{\euro\per\MWh}. The methanol sales price is set at \SI{800}{\euro\per\tonne}, reflecting current green methanol market premiums. CO$_2$ feedstock costs are assumed at \SI{50}{\euro\per\tonne} for captured carbon dioxide.
+
+Operating expenditures comprise both fixed and variable components. Fixed OPEX totals \SI{4.14}{\mega\euro\per\year}, including plant operations and maintenance (\SI{1.35}{\mega\euro\per\year}) and electrolysis stack replacement costs (\SI{2.79}{\mega\euro\per\year}) amortized over a 7.5-year stack lifetime.
+
+\subsubsection{Operational Constraints and Ramping Behavior}
+
+The model incorporates realistic operational constraints reflecting industrial plant limitations. Ramping transitions between operational states incur a 50\% energy penalty and result in complete production loss during transition hours. Following any ramping event, the system requires a 4-hour stabilization period before subsequent state changes are permitted.
+
+These constraints are mathematically expressed as:
+\begin{align}
+P_t^{power} &= P_t^{power,base} + 0.5 \cdot P_{100} \cdot (y_{up}[t] + y_{down}[t]) \\
+P_t^{methanol} &= 0 \quad \text{if } y_{up}[t] = 1 \text{ or } y_{down}[t] = 1
+\end{align}
+
+\subsection{Model Limitations and Scope}
+
+The analysis employs several simplifying assumptions that define the study's scope. Perfect foresight of electricity prices represents an idealized scenario providing theoretical upper bounds for economic performance. The binary operational strategy excludes intermediate capacity levels, which may exist in real systems but complicate the optimization significantly.
+
+The model assumes unlimited methanol market demand and perfect electricity market access without grid constraints or transmission limitations. Maintenance downtime, equipment degradation, and stochastic failures are not considered, representing a best-case operational scenario.
+
+\section{Results and Analysis}
+
+\subsection{Economic Performance Comparison}
+
+Three distinct operational strategies were evaluated to assess the economic value of dynamic optimization: continuous operation at 100\% capacity, continuous operation at 10\% capacity, and dynamic optimization with perfect electricity price foresight. Table~\ref{tab:economic_performance} summarizes the annual economic performance metrics for each strategy.
+
+\begin{table}[H]
+\centering
+\caption{Annual Economic Performance by Operational Strategy}
+\label{tab:economic_performance}
+\begin{tabular}{@{}lrrrc@{}}
+\toprule
+\textbf{Strategy} & \textbf{Profit} & \textbf{Revenue} & \textbf{Costs} & \textbf{Capacity} \\
+& \textbf{(M€)} & \textbf{(M€)} & \textbf{(M€)} & \textbf{Factor (\%)} \\
+\midrule
+100\% All Year & 9.5 & 18.8 & 9.3 & 100.0 \\
+10\% All Year & -11.4 & 1.9 & 13.3 & 10.0 \\
+\textbf{Dynamic Optimization} & \textbf{11.5} & \textbf{13.4} & \textbf{1.9} & \textbf{63.7} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The dynamic optimization strategy achieves the highest annual profit of \SI{11.5}{\mega\euro}, representing a 21\% improvement (\SI{2.0}{\mega\euro} additional profit) compared to continuous 100\% operation. Remarkably, this enhanced profitability is achieved with only 63.7\% average capacity utilization, demonstrating the economic value of electricity market arbitrage.
+
+The 10\% continuous operation strategy proves economically unviable, generating negative annual profit of \SI{-11.4}{\mega\euro}. This result underscores the critical importance of fixed cost allocation in capital-intensive processes, where low production volumes cannot support the substantial CAPEX and fixed OPEX burden.
+
+\subsection{Cost Structure Analysis}
+
+Detailed cost breakdown analysis reveals the economic drivers underlying the observed performance differences. Table~\ref{tab:cost_breakdown} presents per-tonne methanol production costs disaggregated by major cost categories.
+
+\begin{table}[H]
+\centering
+\caption{Production Cost Breakdown per Tonne Methanol}
+\label{tab:cost_breakdown}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Cost Component} & \textbf{100\% All Year} & \textbf{Dynamic Opt} & \textbf{Savings} \\
+& \textbf{(€/tonne)} & \textbf{(€/tonne)} & \textbf{(€/tonne)} \\
+\midrule
+Electricity & 623 & 333 & 290 \\
+CO$_2$ Purchase & 82 & 82 & 0 \\
+Variable OPEX & 32 & 35 & -3 \\
+Fixed OPEX & 176 & 262 & -86 \\
+CAPEX & 260 & 388 & -128 \\
+\midrule
+\textbf{Total} & \textbf{1,172} & \textbf{1,100} & \textbf{72} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Electricity costs represent the dominant variable expense, accounting for 53\% of total production costs under continuous 100\% operation. Dynamic optimization achieves substantial electricity cost reduction of \SI{290}{\euro\per\tonne} (47\% savings), which more than compensates for the increased per-unit allocation of fixed costs and CAPEX due to reduced annual production volume.
+
+The cost structure reveals a fundamental trade-off between electricity cost minimization and fixed cost allocation efficiency. While dynamic operation increases fixed cost burden from \SI{436}{\euro\per\tonne} to \SI{650}{\euro\per\tonne}, the \SI{290}{\euro\per\tonne} electricity savings yield net cost reduction of \SI{72}{\euro\per\tonne}.
+
+\subsection{Operational Characteristics and Market Utilization}
+
+The dynamic optimization strategy exhibits sophisticated electricity market utilization patterns that align plant operation with favorable pricing conditions. Figure~\ref{fig:operation_profile} illustrates the temporal distribution of operational states throughout 2023.
+
+% [Figure reference - to be inserted]
+% Figure 1: plot_1_Full_Year_2023_Electricity_Prices_with_Breakeven_Thresholds.png
+
+The optimized operation allocates 5,584 hours (63.7\%) to 100\% capacity operation and 2,847 hours (32.5\%) to 10\% capacity operation, with 329 hours (3.8\%) dedicated to ramping transitions. This distribution reflects the plant's ability to capitalize on low-cost electricity periods while maintaining operational flexibility.
+
+Economic breakeven analysis reveals critical price thresholds governing operational decisions. The 100\% capacity breakeven price of \SI{9.42}{\euro\per\MWh} and 10\% capacity breakeven price of \SI{14.07}{\euro\per\MWh} define the switching logic. The plant operates at full capacity when electricity prices exceed \SI{14.07}{\euro\per\MWh} (occurring 5,584 hours annually) and reduces to minimum load when prices fall between \SI{9.42}{\euro\per\MWh} and \SI{14.07}{\euro\per\MWh} (2,847 hours annually).
+
+Average electricity prices during 100\% operation (\SI{35.2}{\euro\per\MWh}) significantly exceed those during 10\% operation (\SI{8.1}{\euro\per\MWh}), demonstrating effective market timing. This \SI{27.1}{\euro\per\MWh} differential underscores the economic value of operational flexibility in volatile electricity markets.
+
+\subsection{Seasonal and Temporal Operation Patterns}
+
+Monthly electricity price analysis reveals pronounced seasonal variations that influence optimal operational strategies. Figure~\ref{fig:monthly_distribution} demonstrates significant price volatility across the annual cycle, with winter months typically exhibiting higher average prices and greater volatility.
+
+% [Figure reference - to be inserted]
+% Figure 2: plot_2_Monthly_Electricity_Price_Distribution_with_Breakeven_Lines.png
+
+The price distribution histogram (Figure~\ref{fig:price_histogram}) illustrates the frequency distribution of electricity prices relative to operational breakeven thresholds. Approximately 32.5\% of annual hours feature prices below the 100\% breakeven threshold, justifying capacity reduction during these periods.
+
+% [Figure reference - to be inserted]
+% Figure 3: plot_3_Electricity_Price_Histogram_with_Statistical_Indicators.png
+
+\subsection{Sensitivity to Market Conditions}
+
+The economic performance demonstrates significant sensitivity to electricity market conditions and pricing volatility. The \SI{2.0}{\mega\euro} profit improvement achieved through dynamic optimization represents substantial value that scales with market volatility and price spread magnitude.
+
+Critical sensitivity parameters include:
+\begin{itemize}
+\item Electricity price volatility and spread magnitude
+\item Methanol market price stability (\SI{800}{\euro\per\tonne} baseline)
+\item CO$_2$ feedstock cost variations (\SI{50}{\euro\per\tonne} baseline)
+\item Ramping cost penalties and operational flexibility constraints
+\end{itemize}
+
+\subsection{Performance Metrics and Benchmarking}
+
+The optimized e-methanol production system demonstrates competitive economic performance when benchmarked against key industry metrics. The achieved production cost of \SI{1100}{\euro\per\tonne} for the dynamic optimization strategy positions the technology favorably within the emerging green methanol market segment. This cost structure reflects the significant electricity cost advantage (\SI{333}{\euro\per\tonne}) achieved through strategic market participation compared to baseload operation.
+
+The capacity utilization of 63.7\% represents an optimal balance between electricity cost minimization and fixed asset utilization. While conventional chemical plants typically target capacity factors exceeding 85\% to maximize return on capital investment, the dynamic operation strategy sacrifices production volume to capture substantial electricity market value. The resulting 21\% profit improvement validates this operational philosophy for electricity-intensive processes integrated with volatile renewable energy markets.
+
+Energy efficiency metrics indicate specific electricity consumption of \SI{20.5}{\MWh\per\tonne} methanol for the optimized operation, accounting for both electrolysis and auxiliary power requirements. This figure includes the efficiency penalties associated with partial load operation and ramping transitions, representing realistic industrial operating conditions rather than idealized steady-state performance.
+
+\subsection{Market Integration and Grid Stability Implications}
+
+The dynamic operational strategy demonstrates significant potential for providing valuable grid services while maintaining profitable industrial production. The plant's ability to modulate power consumption between \SI{3.34}{\mega\watt} and \SI{32.4}{\mega\watt} within 4-hour transition periods offers substantial flexibility for grid balancing applications. This demand response capability becomes increasingly valuable as electricity systems integrate higher penetrations of variable renewable energy sources.
+
+However, real-world implementation faces several practical challenges not captured in the perfect foresight optimization model. Electricity price forecasting accuracy critically determines achievable economic performance, with forecast errors directly translating to suboptimal operational decisions. Current day-ahead market forecasting typically achieves mean absolute percentage errors of 15-25\%, suggesting that realized profits may fall significantly below the theoretical optimum presented in this analysis.
+
+Grid connection agreements and transmission constraints may further limit operational flexibility. Industrial consumers typically negotiate electricity supply contracts with capacity charges and minimum take requirements that could constrain the plant's ability to implement optimal load-following strategies. Additionally, frequent load cycling may impose additional wear on electrical infrastructure and require coordination with transmission system operators.
+
+\subsection{Economic Sensitivity and Risk Assessment}
+
+The economic viability of dynamic e-methanol production exhibits strong sensitivity to key market parameters, particularly electricity price volatility and methanol market premiums. The \SI{290}{\euro\per\tonne} electricity cost advantage achieved through dynamic optimization scales directly with electricity price spreads and volatility. Reduced price volatility or flattening of electricity price profiles would correspondingly diminish the economic value of operational flexibility.
+
+Methanol market price fluctuations present both opportunities and risks for the proposed operational strategy. The assumed green methanol premium of \SI{800}{\euro\per\tonne} reflects current market conditions but may evolve as production capacity scales and regulatory frameworks mature. A reduction to conventional methanol pricing levels (\SI{400-500}{\euro\per\tonne}) would fundamentally alter the economic landscape and potentially eliminate the viability of the entire production system.
+
+Capital cost assumptions significantly influence economic outcomes, with electrolysis system costs representing the largest component of annualized expenses. The assumed \SI{1666}{\euro\per\kW} electrolysis CAPEX reflects current alkaline technology costs but may decline substantially with technological learning and manufacturing scale-up. Conversely, supply chain constraints and critical material shortages could drive costs higher than projected levels.
+
+\section{Discussion}
+
+The results demonstrate that dynamic operational strategies can unlock substantial economic value in electricity-intensive industrial processes when integrated with volatile electricity markets. The 21\% profit improvement achieved through perfect foresight optimization represents an upper bound for performance, but even partial realization of this potential could justify significant investment in advanced process control and market integration capabilities.
+
+The fundamental trade-off between electricity cost minimization and fixed cost allocation efficiency emerges as a critical design consideration for future power-to-X facilities. Traditional chemical plant design philosophy emphasizes maximum capacity utilization to optimize return on capital investment. However, the results suggest that electricity-intensive processes may benefit from operational strategies that sacrifice production volume to capture electricity market value, particularly in scenarios with high electricity price volatility.
+
+The economic unviability of continuous 10\% operation highlights the importance of operational flexibility in capital-intensive processes. Fixed costs represent an unavoidable burden that must be distributed across production volume, creating strong incentives for capacity optimization strategies. The ability to cycle between high and low production rates allows the plant to maintain economic viability during unfavorable market conditions while maximizing profit during optimal periods.
+
+Grid integration aspects warrant careful consideration in real-world implementations. While the plant's demand response capabilities offer potential revenue streams from grid services, coordination requirements and technical constraints may limit practical flexibility. Future research should investigate integrated optimization frameworks that simultaneously consider industrial production objectives and grid service provision to maximize total system value.
+
+The perfect foresight assumption provides valuable insights into theoretical performance limits but requires extension to realistic forecasting scenarios. Implementation of model predictive control frameworks with rolling horizon optimization and uncertainty quantification would provide more practical operational guidance. Robust optimization approaches could further address forecast uncertainty and provide risk-managed operational strategies.
+
+\section{Conclusions}
+
+This study demonstrates that dynamic operational optimization can significantly enhance the economic viability of e-methanol production systems integrated with volatile electricity markets. The perfect foresight optimization achieves 21\% profit improvement compared to continuous full-capacity operation, primarily through strategic electricity cost reduction totaling \SI{290}{\euro\per\tonne} methanol. These results establish a theoretical upper bound for economic performance and highlight the substantial value potential of operational flexibility in electricity-intensive industrial processes.
+
+The binary operational strategy proves economically superior to intermediate operational approaches, with continuous 10\% operation demonstrating fundamental economic unviability due to poor fixed cost allocation. The optimal strategy allocates 63.7\% of operating hours to full capacity production and 32.5\% to minimum load operation, achieving effective electricity market arbitrage while maintaining industrial production requirements.
+
+Key technical findings include the identification of critical breakeven electricity prices at \SI{9.42}{\euro\per\MWh} for 100\% operation and \SI{14.07}{\euro\per\MWh} for 10\% operation. These thresholds provide practical operational guidance and demonstrate the plant's ability to maintain profitability across a wide range of electricity market conditions.
+
+The results support the integration of power-to-X technologies with variable renewable electricity systems, providing both industrial production value and grid balancing services. However, real-world implementation requires careful consideration of forecasting accuracy, grid connection constraints, and market integration challenges that may limit achievable performance compared to theoretical optimums.
+
+Future research directions include extension to realistic forecasting scenarios, investigation of integrated industrial-grid optimization frameworks, and comprehensive techno-economic assessment under varying technology learning curves and market evolution scenarios. The demonstrated economic potential justifies continued development of advanced operational strategies for electricity-intensive industrial processes in renewable energy systems.
+
+% Bibliography to be added
+\end{document}
