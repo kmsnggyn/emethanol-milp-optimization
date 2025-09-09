@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-E-Methanol Plant Optimization - Minimal Analysis Suite
+E-Methanol Plant Optimization - Perfect Forecast Analysis
 
-This consolidated script demonstrates the adaptive MPC system with minimal complexity.
+This script runs perfect forecast optimization for the e-methanol plant
+with complete knowledge of electricity prices.
 
 Usage:
     python run_optimization.py
@@ -15,363 +16,286 @@ Requirements:
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from model import get_parameters, load_data, build_model, solve_model
+import time
 
-# Core optimization imports
-from mpc import ForecastingMPC, AdaptivePatternForecaster
-from model import get_parameters
-
-
-def run_mpc_demo():
-    """Run a demonstration of the Adaptive MPC system."""
-    print("ADAPTIVE MPC DEMONSTRATION")
+def run_perfect_optimization():
+    """Run optimization with perfect knowledge of all electricity prices."""
+    
+    print("E-METHANOL PLANT OPTIMIZATION")
     print("=" * 50)
+    print("Perfect Forecast Analysis - Complete Price Knowledge")
+    print()
     
-    # Load electricity data
-    print("Loading 2019 electricity price data...")
-    try:
-        data = pd.read_excel('electricity_data/elspot_prices_2019.xlsx')
-        data = data[data['Date'].notna() & (data['Date'] != 'ID')]
-        data['datetime'] = pd.to_datetime(data['Date'], format='mixed', dayfirst=True)
-        data = data.set_index('datetime')
-        prices = data['SE3'].dropna().values
-        
-        print(f"Loaded {len(prices)} hours of price data")
-        print(f"  Average price: €{np.mean(prices):.2f}/MWh")
-        print(f"  Price range: €{np.min(prices):.2f} - €{np.max(prices):.2f}/MWh")
-        
-    except Exception as e:
-        print(f"Failed to load electricity data: {e}")
-        return None
-    
-    # Get parameters
+    # Load parameters and data
+    print("Loading parameters and electricity price data...")
     params = get_parameters()
+    data = load_data()
+    prices = data['price']
     
-    # Initialize MPC controller
-    print("\nInitializing Adaptive MPC Controller...")
-    mpc_controller = ForecastingMPC()
+    print(f"Loaded {len(prices)} hours of electricity price data")
+    print(f"Price range: {min(prices):.2f} - {max(prices):.2f} EUR/MWh")
+    print(f"Average price: {np.mean(prices):.2f} EUR/MWh")
+    print()
     
-    # Run MPC simulation for first week
-    week_hours = 168
-    print(f"Running MPC simulation (first {week_hours} hours)...")
-    try:
-        result = mpc_controller.run_mpc_simulation(
-            actual_prices=prices[:week_hours],
-            params=params,
-            verbose=False
-        )
-        
-        if result:
-            print(f"\nMPC Simulation Complete!")
-            print(f"  Total Profit: €{result['total_profit']:,.0f}")
-            print(f"  Production: {result['total_production']:,.0f} tons")
-            print(f"  Capacity Factor: {result['capacity_factor']:.1f}%")
-            print(f"  Ramp Events: {result['total_ramps']}")
-            
-            return result
-        else:
-            print("MPC simulation failed")
-            return None
-            
-    except Exception as e:
-        print(f"MPC simulation error: {e}")
+    # Build and solve the model
+    print("Building optimization model...")
+    start_time = time.time()
+    
+    model = build_model(prices, params)
+    
+    print("Solving optimization problem...")
+    print("(This may take a few minutes for the full year)")
+    
+    termination_condition = solve_model(model)
+    
+    solve_time = time.time() - start_time
+    print(f"Optimization completed in {solve_time:.1f} seconds")
+    print(f"Solver status: {termination_condition}")
+    print()
+    
+    if termination_condition != "optimal":
+        print("ERROR: Optimization did not find optimal solution!")
         return None
-
-
-def analyze_forecasting():
-    """Analyze the adaptive forecasting capabilities."""
-    print("\nFORECASTING ANALYSIS")
-    print("=" * 30)
     
-    try:
-        # Load price data
-        data = pd.read_excel('electricity_data/elspot_prices_2019.xlsx')
-        data = data[data['Date'].notna() & (data['Date'] != 'ID')]
-        data['datetime'] = pd.to_datetime(data['Date'], format='mixed', dayfirst=True)
-        data = data.set_index('datetime')
-        prices = data['SE3'].dropna()
-        
-        # Test forecaster learning
-        forecaster = AdaptivePatternForecaster()
-        errors = []
-        
-        # Test first week - matches our progress bar intervals  
-        week_hours = 168
-        test_hours = min(week_hours, len(prices) - 1)
-        for hour in range(test_hours):
-            if hour < len(prices) - 1:
-                actual_price = prices.iloc[hour]
-                next_actual = prices.iloc[hour + 1]
-                
-                # Generate forecast
-                forecast = forecaster.forecast(hour, 1)
-                if forecast:
-                    error = abs(forecast[0] - next_actual)
-                    errors.append(error)
-                
-                # Update with observation
-                forecaster.update_with_observation(hour, actual_price)
-        
-        if errors:
-            print(f"Forecast Performance ({test_hours} hours):")
-            print(f"   • Mean error: €{np.mean(errors):.2f}/MWh")
-            print(f"   • Std error: €{np.std(errors):.2f}/MWh")
-            print(f"   • Best forecast: €{np.min(errors):.2f}/MWh error")
-            print(f"   • Worst forecast: €{np.max(errors):.2f}/MWh error")
-        
-        # Calculate dynamic price thresholds based on data
-        price_75th = np.percentile(prices, 75)
-        price_25th = np.percentile(prices, 25) 
-        
-        # Market insights with dynamic thresholds
-        print(f"\nMarket Insights:")
-        print(f"   • Average price: €{prices.mean():.2f}/MWh")
-        print(f"   • Hours above €{price_75th:.0f}/MWh: {(prices > price_75th).sum()} ({(prices > price_75th).mean()*100:.1f}%)")
-        print(f"   • Hours below €{price_25th:.0f}/MWh: {(prices < price_25th).sum()} ({(prices < price_25th).mean()*100:.1f}%)")
-        
-        return errors
-        
-    except Exception as e:
-        print(f"Forecasting analysis failed: {e}")
-        return None
-
-
-def show_key_results():
-    """Display the key results from our full system analysis."""
-    params = get_parameters()
+    # Extract results
+    print("Extracting optimization results...")
     
-    # Calculate breakeven price dynamically
-    methanol_production = 2.56  # ton/hr from params M_100
-    revenue_per_hour = methanol_production * params['Price_Methanol']
-    fixed_costs_per_hour = (params['Annualized_CAPEX'] + params['OPEX_Fixed']) / 8760
-    other_costs = params['C_100'] * params['Price_CO2'] + params['OPEX_Variable'] + fixed_costs_per_hour
-    net_before_electricity = revenue_per_hour - other_costs
-    breakeven_price = net_before_electricity / params['P_100']
+    # Get variable values
+    x_100_values = [model.x_100[t].value for t in model.T]
+    x_10_values = [model.x_10[t].value for t in model.T]
+    y_ramp_up_values = [model.y_ramp_up[t].value for t in model.T]
+    y_ramp_down_values = [model.y_ramp_down[t].value for t in model.T]
     
-    print("\nKEY SYSTEM RESULTS")
-    print("=" * 40)
-    print("Current Plant Economics (based on parameters):")
-    print()
-    print("Plant Configuration:")
-    print(f"  • Methanol Production: {methanol_production} ton/hr")
-    print(f"  • Power Consumption: {params['P_100']} MW")
-    print(f"  • Methanol Price: €{params['Price_Methanol']}/ton")
-    print(f"  • Annual Fixed Costs: €{(params['Annualized_CAPEX'] + params['OPEX_Fixed'])/1e6:.1f}M")
-    print()
-    print("Economic Analysis:")
-    print(f"  • Revenue: €{revenue_per_hour:.0f}/hour")
-    print(f"  • Fixed Costs: €{fixed_costs_per_hour:.0f}/hour")
-    print(f"  • Variable Costs: €{other_costs - fixed_costs_per_hour:.0f}/hour")
-    print(f"  • Breakeven Electricity: €{breakeven_price:.1f}/MWh")
-    print()
-    print("Key Insights:")
-    print("  • Plant operates only when electricity < breakeven price")
-    print("  • Optimization enables selective operation during profitable periods")
-    print("  • Shutdown capability prevents losses during expensive periods")
-    print("  • Adaptive forecasting enables intelligent operation")
-
-
-def create_simple_visualization(mpc_result=None, forecast_errors=None):
-    """Create a simple visualization if matplotlib is available."""
-    try:
-        params = get_parameters()
-        
-        # Calculate actual values based on current parameters
-        methanol_production = 2.56
-        revenue_per_hour = methanol_production * params['Price_Methanol']
-        fixed_costs_per_hour = (params['Annualized_CAPEX'] + params['OPEX_Fixed']) / 8760
-        other_costs = params['C_100'] * params['Price_CO2'] + params['OPEX_Variable'] + fixed_costs_per_hour
-        net_before_electricity = revenue_per_hour - other_costs
-        breakeven_price = net_before_electricity / params['P_100']
-        
-        # Create economic analysis chart
-        categories = ['Revenue', 'Fixed Costs', 'Variable Costs', 'Net (before elec.)']
-        values = [revenue_per_hour, -fixed_costs_per_hour, -(other_costs - fixed_costs_per_hour), net_before_electricity]
-        
-        plt.figure(figsize=(12, 6))
-        
-        # Subplot 1: Economic breakdown
-        plt.subplot(1, 2, 1)
-        colors = ['#2ecc71', '#e74c3c', '#f39c12', '#3498db']
-        bars = plt.bar(categories, values, color=colors)
-        
-        plt.title('Hourly Economics Breakdown', fontsize=12, fontweight='bold')
-        plt.ylabel('€/hour', fontsize=10)
-        plt.xticks(rotation=45)
-        
-        # Add value labels
-        for bar, value in zip(bars, values):
-            height = bar.get_height()
-            plt.text(bar.get_x() + bar.get_width()/2., height + (20 if height > 0 else -40),
-                    f'€{value:.0f}', ha='center', va='bottom' if height > 0 else 'top', fontweight='bold')
-        
-        plt.grid(axis='y', alpha=0.3)
-        
-        # Subplot 2: Breakeven analysis
-        plt.subplot(1, 2, 2)
-        electricity_prices = [0, 10, 20, breakeven_price, 40, 60]
-        profits = [(net_before_electricity - params['P_100'] * price) for price in electricity_prices]
-        
-        plt.plot(electricity_prices, profits, 'o-', linewidth=2, markersize=6, color='#3498db')
-        plt.axhline(y=0, color='r', linestyle='--', alpha=0.7, label='Break-even')
-        plt.axvline(x=breakeven_price, color='g', linestyle='--', alpha=0.7, label=f'Break-even price: €{breakeven_price:.1f}/MWh')
-        
-        plt.title('Profit vs Electricity Price', fontsize=12, fontweight='bold')
-        plt.xlabel('Electricity Price (€/MWh)', fontsize=10)
-        plt.ylabel('Profit (€/hour)', fontsize=10)
-        plt.grid(True, alpha=0.3)
-        plt.legend()
-        
-        plt.tight_layout()
-        plt.savefig('optimization_results.png', dpi=300, bbox_inches='tight')
-        print(f"\nEconomic analysis chart saved as 'optimization_results.png'")
-        plt.close()
-        
-    except Exception as e:
-        print(f"Note: Visualization not available ({e})")
-
-
-def run_shutdown_mpc_test():
-    """Test the new shutdown-capable MPC system."""
-    print("\nSHUTDOWN-CAPABLE MPC TEST")
+    # Calculate statistics
+    hours_100 = sum(x_100_values)
+    hours_10 = sum(x_10_values)
+    hours_ramp_up = sum(y_ramp_up_values)
+    hours_ramp_down = sum(y_ramp_down_values)
+    total_hours = len(prices)
+    
+    # Calculate production and costs
+    total_production_100 = hours_100 * params["M_100"]  # kg
+    total_production_10 = hours_10 * params["M_10"]     # kg
+    total_production = total_production_100 + total_production_10
+    
+    # Calculate electricity costs
+    electricity_cost_100 = sum(
+        prices[t] * params["P_100"] * x_100_values[t] 
+        for t in range(len(prices))
+    )
+    electricity_cost_10 = sum(
+        prices[t] * params["P_10"] * x_10_values[t] 
+        for t in range(len(prices))
+    )
+    electricity_cost_ramp_up = sum(
+        prices[t] * params["P_100"] * (params["Energy_Penalty_Up"]/100) * y_ramp_up_values[t]
+        for t in range(len(prices))
+    )
+    electricity_cost_ramp_down = sum(
+        prices[t] * params["P_10"] * (params["Energy_Penalty_Down"]/100) * y_ramp_down_values[t]
+        for t in range(len(prices))
+    )
+    total_electricity_cost = electricity_cost_100 + electricity_cost_10 + electricity_cost_ramp_up + electricity_cost_ramp_down
+    
+    # Calculate other costs
+    co2_cost = hours_100 * params["C_100"] * params["Price_CO2"] + hours_10 * params["C_10"] * params["Price_CO2"]
+    variable_opex = hours_100 * params["OPEX_Variable"] + hours_10 * params["OPEX_10"]
+    
+    # Calculate revenue
+    revenue = total_production * params["Price_Methanol"]
+    
+    # Calculate total costs
+    total_costs = (total_electricity_cost + co2_cost + variable_opex + 
+                   params["Annualized_CAPEX"] + params["OPEX_Fixed"] + params["OPEX_Electrolysis_Stack"])
+    
+    # Calculate profit
+    total_profit = revenue - total_costs
+    
+    # Display results
+    print("OPTIMIZATION RESULTS")
     print("=" * 50)
+    print(f"Total Profit: €{total_profit:,.0f}")
+    print(f"Total Revenue: €{revenue:,.0f}")
+    print(f"Total Costs: €{total_costs:,.0f}")
+    print()
     
-    # Load data using new shutdown parameters
-    print("Loading 2019 electricity price data...")
-    try:
-        data = pd.read_excel('electricity_data/elspot_prices_2019.xlsx')
-        data = data[data['Date'].notna() & (data['Date'] != 'ID')]
-        data['datetime'] = pd.to_datetime(data['Date'], format='mixed', dayfirst=True)
-        data = data.set_index('datetime')
-        prices = data['SE3'].dropna().values
-        print(f"Loaded {len(prices)} hours of price data")
-    except Exception as e:
-        print(f"Failed to load electricity data: {e}")
-        return None
+    print("OPERATION BREAKDOWN")
+    print("-" * 30)
+    print(f"100% Load Hours: {hours_100:.0f} ({hours_100/total_hours*100:.1f}%)")
+    print(f"10% Load Hours:  {hours_10:.0f} ({hours_10/total_hours*100:.1f}%)")
+    print(f"Ramp Up Events:  {hours_ramp_up:.0f}")
+    print(f"Ramp Down Events: {hours_ramp_down:.0f}")
+    print()
     
-    params = get_parameters()  # This now includes shutdown parameters
+    print("PRODUCTION")
+    print("-" * 30)
+    print(f"100% Load Production: {total_production_100/1000:,.0f} tons")
+    print(f"10% Load Production:  {total_production_10/1000:,.0f} tons")
+    print(f"Total Production:     {total_production/1000:,.0f} tons")
+    print(f"Capacity Factor:      {total_production/(total_hours * params['M_100'])*100:.1f}%")
+    print()
     
-    print("\nNew Shutdown Parameters:")
-    print(f"  Startup Duration: {params['startup_duration']} hours")
-    print(f"  Shutdown Duration: {params['shutdown_duration']} hours")
-    print(f"  Power during startup: {params['P_startup']} MW")
-    print(f"  Power during shutdown transition: {params['P_shutdown_trans']} MW")
-    print(f"  OPEX during shutdown state: €{params['OPEX_shutdown_state']}/hour")
+    print("COST BREAKDOWN")
+    print("-" * 30)
+    print(f"Electricity Cost:     €{total_electricity_cost:,.0f}")
+    print(f"  - 100% Load:        €{electricity_cost_100:,.0f}")
+    print(f"  - 10% Load:         €{electricity_cost_10:,.0f}")
+    print(f"  - Ramp Penalties:   €{electricity_cost_ramp_up + electricity_cost_ramp_down:,.0f}")
+    print(f"CO2 Cost:             €{co2_cost:,.0f}")
+    print(f"Variable OPEX:        €{variable_opex:,.0f}")
+    print(f"Fixed OPEX:           €{params['OPEX_Fixed'] + params['OPEX_Electrolysis_Stack']:,.0f}")
+    print(f"CAPEX:                €{params['Annualized_CAPEX']:,.0f}")
+    print()
     
-    print("\nInitializing Shutdown-Capable MPC Controller...")
-    mpc_controller = ForecastingMPC()
+    # Calculate breakeven prices
+    breakeven_100 = (params["C_100"] * params["Price_CO2"] + params["OPEX_Variable"]) / params["P_100"]
+    breakeven_10 = (params["C_10"] * params["Price_CO2"] + params["OPEX_10"]) / params["P_10"]
     
-    # Run MPC simulation for full quarter (Q1 2019)
-    quarter_days = 90
-    simulation_hours = min(quarter_days * 24, len(prices))
-    print(f"Running Shutdown MPC simulation ({simulation_hours} hours = {simulation_hours//24} days)...")
-    try:
-        result = mpc_controller.run_mpc_simulation(
-            actual_prices=prices[:simulation_hours],
-            params=params,
-            verbose=True
-        )
-        
-        if result:
-            print(f"\nShutdown MPC Simulation Complete!")
-            print(f"  Total Profit: €{result['total_profit']:,.0f}")
-            print(f"  Production: {result['total_production']:,.0f} tons")
-            print(f"  Capacity Factor: {result['capacity_factor']:.1f}%")
-            print(f"  Transition Events: {result['total_ramps']}")
-            
-            # Analyze state distribution
-            states = result['decisions']
-            running_hours = sum(1 for s in states if s == 'running')
-            shutdown_hours = sum(1 for s in states if s == 'shutdown')
-            startup_hours = sum(1 for s in states if s == 'startup')
-            shutdown_trans_hours = sum(1 for s in states if s == 'shutdown_trans')
-            
-            print(f"  Running Hours: {running_hours}")
-            print(f"  Shutdown Hours: {shutdown_hours}")
-            print(f"  Startup Hours: {startup_hours}")
-            print(f"  Shutdown Transition Hours: {shutdown_trans_hours}")
-            
-            # Additional analysis for longer simulation
-            total_hours = simulation_hours
-            uptime_percentage = (running_hours / total_hours) * 100
-            print(f"\nExtended Simulation Analysis ({total_hours//24} days):")
-            print(f"  Plant Uptime: {uptime_percentage:.1f}%")
-            print(f"  Avg Daily Production: {result['total_production']/(total_hours/24):.1f} tons/day")
-            if result['total_ramps'] > 0:
-                hours_per_cycle = total_hours / result['total_ramps']
-                print(f"  Avg Cycle Length: {hours_per_cycle:.1f} hours")
-            
-            return result
-        else:
-            print("Shutdown MPC simulation failed")
-            return None
-            
-    except Exception as e:
-        print(f"Shutdown MPC simulation error: {e}")
-        return None
-
-
-def main():
-    """Main demonstration function for shutdown-capable optimization."""
-    print("E-METHANOL OPTIMIZATION WITH SHUTDOWN CAPABILITY")
-    print("=" * 60)
-    print("Enhanced MILP-based optimization with complete shutdown option")
-    print("Demonstrating adaptive MPC with shutdown capability...\n")
+    print("ECONOMIC ANALYSIS")
+    print("-" * 30)
+    print(f"100% Load Breakeven:  €{breakeven_100:.2f}/MWh")
+    print(f"10% Load Breakeven:   €{breakeven_10:.2f}/MWh")
+    print()
     
-    # Test the new shutdown-capable system
-    shutdown_result = run_shutdown_mpc_test()
+    # Analyze price distribution
+    prices_100_hours = [prices[t] for t in range(len(prices)) if x_100_values[t] > 0.5]
+    prices_10_hours = [prices[t] for t in range(len(prices)) if x_10_values[t] > 0.5]
     
-    # Analyze forecasting (unchanged)
-    forecast_errors = analyze_forecasting()
+    if prices_100_hours:
+        print(f"100% Load Price Stats:")
+        print(f"  Average: €{np.mean(prices_100_hours):.2f}/MWh")
+        print(f"  Range: €{min(prices_100_hours):.2f} - €{max(prices_100_hours):.2f}/MWh")
     
-    # Show key results from enhanced analysis
-    if shutdown_result:
-        print(f"\nENHANCED SYSTEM RESULTS")
-        print("=" * 40)
-        print(f"Shutdown-Capable Strategy:")
-        print(f"  • Total Profit: €{shutdown_result['total_profit']:,.0f}")
-        print(f"  • Production: {shutdown_result['total_production']:,.0f} tons")
-        print(f"  • Capacity Factor: {shutdown_result['capacity_factor']:.1f}%")
-        print(f"  • Transition Events: {shutdown_result['total_ramps']}")
-        
-        # Calculate efficiency metrics
-        states = shutdown_result['decisions']
-        running_hours = sum(1 for s in states if s == 'running')
-        print(f"  • Actual running time: {running_hours}/{len(states)} hours")
-        
-        if running_hours > 0:
-            production_efficiency = shutdown_result['total_production'] / running_hours
-            print(f"  • Production efficiency: {production_efficiency:.1f} tons/running_hour")
+    if prices_10_hours:
+        print(f"10% Load Price Stats:")
+        print(f"  Average: €{np.mean(prices_10_hours):.2f}/MWh")
+        print(f"  Range: €{min(prices_10_hours):.2f} - €{max(prices_10_hours):.2f}/MWh")
     
-    # Create simple visualization showing state distribution
-    if shutdown_result:
-        print("\nState Distribution Analysis:")
-        states = shutdown_result['decisions']
-        state_counts = {
-            'running': sum(1 for s in states if s == 'running'),
-            'shutdown': sum(1 for s in states if s == 'shutdown'),
-            'startup': sum(1 for s in states if s == 'startup'),
-            'shutdown_trans': sum(1 for s in states if s == 'shutdown_trans')
-        }
-        
-        for state, count in state_counts.items():
-            percentage = count / len(states) * 100
-            print(f"  {state}: {count} hours ({percentage:.1f}%)")
-    
-    # Show economic analysis
-    show_key_results()
+    print()
     
     # Create visualization
-    create_simple_visualization(shutdown_result, forecast_errors)
+    create_optimization_plot(prices, x_100_values, x_10_values, params)
     
-    print(f"\nENHANCED DEMONSTRATION COMPLETE")
-    print("=" * 60)
-    print("Key enhancements in shutdown-capable system:")
-    print("  • Complete plant shutdown (0% vs minimum 10%)")
-    print("  • Realistic transition sequences and costs")
-    print("  • No production during transition periods")
-    print("  • Enhanced operational flexibility")
-    print("  • Better adaptation to extreme market conditions")
+    return {
+        'total_profit': total_profit,
+        'total_production': total_production,
+        'hours_100': hours_100,
+        'hours_10': hours_10,
+        'capacity_factor': total_production/(total_hours * params['M_100'])*100,
+        'electricity_cost': total_electricity_cost,
+        'revenue': revenue
+    }
 
+def create_optimization_plot(prices, x_100_values, x_10_values, params):
+    """Create visualization of optimization results."""
+    
+    # Create a sample of the first 168 hours (1 week) for visualization
+    sample_hours = min(168, len(prices))
+    sample_prices = prices[:sample_hours]
+    sample_x_100 = x_100_values[:sample_hours]
+    sample_x_10 = x_10_values[:sample_hours]
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+    
+    # Plot 1: Electricity prices and operating states
+    hours = range(sample_hours)
+    
+    # Plot electricity prices
+    ax1.plot(hours, sample_prices, 'b-', alpha=0.7, label='Electricity Price')
+    ax1.set_ylabel('Price (EUR/MWh)')
+    ax1.set_title('E-Methanol Plant Optimization - Sample Week')
+    ax1.grid(True, alpha=0.3)
+    
+    # Highlight operating states
+    for i, (price, x100, x10) in enumerate(zip(sample_prices, sample_x_100, sample_x_10)):
+        if x100 > 0.5:  # 100% load
+            ax1.axvspan(i-0.5, i+0.5, alpha=0.3, color='green', label='100% Load' if i == 0 else "")
+        elif x10 > 0.5:  # 10% load
+            ax1.axvspan(i-0.5, i+0.5, alpha=0.3, color='orange', label='10% Load' if i == 0 else "")
+    
+    ax1.legend()
+    
+    # Plot 2: Power consumption
+    power_consumption = []
+    for i in range(sample_hours):
+        if sample_x_100[i] > 0.5:
+            power_consumption.append(params["P_100"])
+        elif sample_x_10[i] > 0.5:
+            power_consumption.append(params["P_10"])
+        else:
+            power_consumption.append(0)
+    
+    ax2.plot(hours, power_consumption, 'r-', linewidth=2, label='Power Consumption')
+    ax2.set_xlabel('Hour')
+    ax2.set_ylabel('Power (MW)')
+    ax2.set_title('Power Consumption Profile')
+    ax2.grid(True, alpha=0.3)
+    ax2.legend()
+    
+    plt.tight_layout()
+    plt.savefig('optimization_results.png', dpi=300, bbox_inches='tight')
+    print("Optimization visualization saved as 'optimization_results.png'")
+    
+    return fig
+
+def show_key_results():
+    """Display key economic results and insights."""
+    print("\nKEY ECONOMIC INSIGHTS")
+    print("=" * 50)
+    
+    params = get_parameters()
+    
+    print("Plant Configuration:")
+    print(f"  • 100% Load: {params['M_100']/1000:.1f} ton/hr, {params['P_100']} MW")
+    print(f"  • 10% Load:  {params['M_10']/1000:.1f} ton/hr, {params['P_10']} MW")
+    print(f"  • Methanol Price: €{params['Price_Methanol']*1000:.0f}/ton")
+    print(f"  • Annual Fixed Costs: €{(params['OPEX_Fixed'] + params['OPEX_Electrolysis_Stack'] + params['Annualized_CAPEX'])/1e6:.1f}M")
+    print()
+    
+    # Calculate breakeven prices
+    breakeven_100 = (params["C_100"] * params["Price_CO2"] + params["OPEX_Variable"]) / params["P_100"]
+    breakeven_10 = (params["C_10"] * params["Price_CO2"] + params["OPEX_10"]) / params["P_10"]
+    
+    print("Economic Analysis:")
+    print(f"  100% Load Mode:")
+    print(f"    • Revenue: €{params['M_100'] * params['Price_Methanol']:.0f}/hour")
+    print(f"    • Variable Costs: €{(params['C_100'] * params['Price_CO2'] + params['OPEX_Variable']):.0f}/hour")
+    print(f"    • Breakeven Electricity: €{breakeven_100:.2f}/MWh")
+    print(f"  10% Load Mode:")
+    print(f"    • Revenue: €{params['M_10'] * params['Price_Methanol']:.0f}/hour")
+    print(f"    • Variable Costs: €{(params['C_10'] * params['Price_CO2'] + params['OPEX_10']):.0f}/hour")
+    print(f"    • Breakeven Electricity: €{breakeven_10:.2f}/MWh")
+    print()
+    
+    print("Key Insights:")
+    print("  • Plant operates at 100% when electricity < €{:.2f}/MWh".format(breakeven_100))
+    print("  • Plant operates at 10% when electricity < €{:.2f}/MWh".format(breakeven_10))
+    print("  • Optimization enables selective operation during profitable periods")
+    print("  • Binary operation provides operational flexibility")
+    print("  • Perfect forecasting enables optimal load selection")
+
+def main():
+    """Main execution function."""
+    print("E-METHANOL PLANT OPTIMIZATION")
+    print("=" * 50)
+    print("Perfect Forecast Analysis")
+    print("Complete knowledge of electricity prices")
+    print()
+    
+    # Run optimization
+    results = run_perfect_optimization()
+    
+    if results:
+        # Show key results
+        show_key_results()
+        
+        print("\nOPTIMIZATION COMPLETE")
+        print("=" * 50)
+        print("This represents the theoretical maximum profit achievable")
+        print("with perfect knowledge of all electricity prices.")
+    else:
+        print("Optimization failed!")
 
 if __name__ == "__main__":
     main()
