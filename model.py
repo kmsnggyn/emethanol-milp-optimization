@@ -35,12 +35,13 @@ def get_parameters():
         "Production_Loss_Down": 100.0, # No production during ramp down [%]
         "Energy_Penalty_Down": 50.0,  # Additional energy penalty during ramp down [%]
         
-        # Economic parameters (2023-2024 market conditions with green methanol premium)
-        "Price_Methanol": 1.0,        # €/kg (800 €/ton ÷ 1000 kg/ton)
-        "Price_CO2": 0.05,             # €/kg (50 €/ton ÷ 1000 kg/ton)
-        "Methanol_Plant_CAPEX": 226399.12, # €/year (methanol plant only)
-        "Electrolysis_CAPEX": 5.9e6,  # €/year (31.4 MW × €1,666/kW × 7% discount rate, 20yr)
-        "Annualized_CAPEX": 226399.12 + 5.9e6, # €/year (total system CAPEX)
+        # Economic parameters 
+        "Price_Methanol": 1.0,        # €/kg
+        "Price_CO2": 0.05,             # €/kg
+        "Methanol_Plant_CAPEX": 226399.12, # €/year
+        # Electrolyzer CAPEX: $80/kW (convert to EUR, annualize)
+        "Electrolysis_CAPEX": 31_400 * 80 * 0.92 / 20,  # €/year (31.4 MW × $80/kW × 0.92 EUR/USD × 20yr)
+        "Annualized_CAPEX": 226399.12 + (31_400 * 80 * 0.92 / 20), # €/year (total system CAPEX)
         "OPEX_Fixed": 1.35e6,         # €/year (methanol plant fixed O&M)
         "OPEX_Electrolysis_Stack": 2.79e6, # €/year (stack replacement every 7.5 years)
         "OPEX_Variable": 85.0,        # €/hour at 100% operation

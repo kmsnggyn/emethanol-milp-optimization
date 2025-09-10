@@ -193,7 +193,7 @@ def create_plot_1(prices, results_100, results_10, results_dynamic, params):
     
     ax.plot(dates, prices, color=PLOT_COLORS[0], linewidth=0.8, label='Electricity Price')
     ax.axhline(y=9.42, color=PLOT_COLORS[4], linestyle='--', label='100% Breakeven (€9.42/MWh)')
-    ax.axhline(y=14.07, color=PLOT_COLORS[1], linestyle='--', label='10% Breakeven (€14.07/MWh)')
+    # ax.axhline(y=14.07, color=PLOT_COLORS[1], linestyle='--', label='10% Breakeven (€14.07/MWh)')
     ax.axhline(y=np.mean(prices), color=PLOT_COLORS[3], linestyle='-', label=f'Average (€{np.mean(prices):.1f}/MWh)')
     
     ax.set_ylabel('Price (EUR/MWh)')
@@ -250,7 +250,7 @@ def create_plot_2(prices, results_100, results_10, results_dynamic, params):
         flier.set_markersize(4)  # Make them slightly smaller
     
     ax.axhline(y=9.42, color=PLOT_COLORS[4], linestyle='--', label='100% Breakeven')
-    ax.axhline(y=14.07, color=PLOT_COLORS[1], linestyle='--', label='10% Breakeven')
+        # ax.axhline(y=14.07, color=PLOT_COLORS[1], linestyle='--', label='10% Breakeven')
     ax.set_xlabel('Month')
     ax.set_ylabel('Price (EUR/MWh)')
     ax.legend()
@@ -271,7 +271,7 @@ def create_plot_3(prices, results_100, results_10, results_dynamic, params):
     
     ax.hist(prices, bins=50, alpha=0.7, color=PLOT_COLORS[0], edgecolor='black')
     ax.axvline(x=9.42, color=PLOT_COLORS[4], linestyle='--', label='100% Breakeven')
-    ax.axvline(x=14.07, color=PLOT_COLORS[1], linestyle='--', label='10% Breakeven')
+        # ax.axvline(x=14.07, color=PLOT_COLORS[1], linestyle='--', label='10% Breakeven')
     ax.axvline(x=np.mean(prices), color=PLOT_COLORS[3], linestyle='-', label=f'Average')
     ax.set_xlabel('Price (EUR/MWh)', fontsize=PLOT_CONFIG['label_size'])
     ax.set_ylabel('Frequency (hours)', fontsize=PLOT_CONFIG['label_size'])
@@ -492,8 +492,7 @@ def create_cost_per_ton_analysis(results_100, results_10, results_dynamic, param
     ax.legend(bbox_to_anchor=(0.5, -0.2), loc='upper center', ncol=3)
     ax.grid(True, alpha=0.3, axis='y')
     
-    # Set y-axis limit to provide headroom for labels
-    ax.set_ylim(0, 1500)
+    # Let matplotlib automatically decide y-axis range
     
     # Add total cost per tonne labels
     total_costs_per_tonne = [sum(cost_per_ton_data[i].values()) for i in range(len(strategies))]
@@ -564,7 +563,7 @@ def create_perfect_forecast_plot(prices, results_dynamic, params):
     
     # Add breakeven lines
     ax1.axhline(y=9.42, color='green', linestyle='--', alpha=0.8, linewidth=2, label='100% Breakeven (€9.42/MWh)')
-    ax1.axhline(y=14.07, color='orange', linestyle='--', alpha=0.8, linewidth=2, label='10% Breakeven (€14.07/MWh)')
+        # ax1.axhline(y=14.07, color='orange', linestyle='--', alpha=0.8, linewidth=2, label='10% Breakeven (€14.07/MWh)')
     
     ax1.set_ylabel('Price (EUR/MWh)', fontsize=PLOT_CONFIG['label_size'])
     ax1.legend(loc='upper right', fontsize=PLOT_CONFIG['legend_size'])
@@ -572,12 +571,11 @@ def create_perfect_forecast_plot(prices, results_dynamic, params):
     ax1.set_xlim(0, len(prices))
     ax1.tick_params(axis='both', labelsize=PLOT_CONFIG['tick_size'])
     
-    # Add custom legend for operational zones
+    # Add custom legend for operational zones (remove 'Shutdown')
     from matplotlib.patches import Patch
     legend_elements = [
         Patch(facecolor='green', alpha=PLOT_CONFIG['fill_alpha'], label='100% Load'),
-        Patch(facecolor='orange', alpha=PLOT_CONFIG['fill_alpha'], label='10% Load'),
-        Patch(facecolor='white', alpha=PLOT_CONFIG['fill_alpha'], label='Shutdown', edgecolor='gray')
+        Patch(facecolor='orange', alpha=PLOT_CONFIG['fill_alpha'], label='10% Load')
     ]
     ax1.legend(handles=legend_elements, loc='upper left', title='Operation Mode', fontsize=PLOT_CONFIG['legend_size'])
     
