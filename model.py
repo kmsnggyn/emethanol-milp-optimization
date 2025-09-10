@@ -13,7 +13,7 @@ import os
 
 
 def get_parameters():
-    """Get realistic 2019 parameters for e-methanol optimization with binary operation (100% or 10%)."""
+    """Get realistic 2023-2025 parameters for e-methanol optimization with binary operation (100% or 10%)."""
     return {
         # Technical parameters (based on 2023-2024 market data: 52 kWh/kg H2, 77% LHV efficiency)
         "P_electrolysis_100": 31.4,  # Electrolysis power at 100% [MW] - H2 production (604.8 kg/hr × 52 kWh/kg ÷ 1000)
@@ -36,7 +36,7 @@ def get_parameters():
         "Energy_Penalty_Down": 50.0,  # Additional energy penalty during ramp down [%]
         
         # Economic parameters (2023-2024 market conditions with green methanol premium)
-        "Price_Methanol": 0.8,        # €/kg (800 €/ton ÷ 1000 kg/ton)
+        "Price_Methanol": 1.0,        # €/kg (800 €/ton ÷ 1000 kg/ton)
         "Price_CO2": 0.05,             # €/kg (50 €/ton ÷ 1000 kg/ton)
         "Methanol_Plant_CAPEX": 226399.12, # €/year (methanol plant only)
         "Electrolysis_CAPEX": 5.9e6,  # €/year (31.4 MW × €1,666/kW × 7% discount rate, 20yr)
@@ -51,25 +51,20 @@ def get_parameters():
     }
 
 
-def load_data():
-    """Load 2023 electricity price data."""
-    data_file = 'electricity_data/elspot_prices_2023.xlsx'
-    
+def load_data(data_file='electricity_data/elspot_prices_2023.xlsx'):
+    """Load electricity price data for a given year (default: 2023)."""
     if not os.path.exists(data_file):
         raise FileNotFoundError(f"Data file not found: {data_file}")
-    
-    print(f"Loading 2023 electricity data from {data_file}...")
+    year = data_file.split('_')[-1].split('.')[0]
+    print(f"Loading {year} electricity data from {data_file}...")
     df = pd.read_excel(data_file)
-    
-    # Use SE3 (Swedish zone 3) prices, exactly 8760 hours starting from 2.01
-    price_series = df['SE3'].iloc[0:8762]  # Take 8762 entries to get 8760 clean values starting from 2.01
+    # Use SE3 (Swedish zone 3) prices, exactly 8760 hours
+    price_series = df['SE3'].iloc[0:8762]
     prices = price_series.dropna().tolist()
-    prices = [float(p) for p in prices if isinstance(p, (int, float)) and not pd.isna(p)]  # Include zero and negative prices
-    
-    print(f"  elspot_prices_2023.xlsx: {len(prices)} prices from column 'SE3' (starting from 2.01)")
-    print(f"Total loaded: {len(prices)} hours of 2023 electricity price data")
+    prices = [float(p) for p in prices if isinstance(p, (int, float)) and not pd.isna(p)]
+    print(f"  {os.path.basename(data_file)}: {len(prices)} prices from column 'SE3'")
+    print(f"Total loaded: {len(prices)} hours of {year} electricity price data")
     print(f"Price range: {min(prices):.2f} - {max(prices):.2f} €/MWh")
-    
     return {'price': prices}
 
 

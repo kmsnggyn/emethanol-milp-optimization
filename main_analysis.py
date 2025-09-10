@@ -6,6 +6,7 @@ Custom E-Methanol Plant Analysis with Modified Visualizations
 Creates custom plot layouts and cost per ton analysis as requested.
 """
 
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,15 +14,48 @@ from model import get_parameters, load_data, build_model, solve_model
 import time
 from datetime import datetime, timedelta
 
+# Ensure we're running from the correct directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_dir)
+print(f"Working directory set to: {os.getcwd()}")
+
+# Plotting configuration - single source of truth for all visual formatting
+PLOT_CONFIG = {
+    # Figure sizes (width, height in inches)
+    'large_figure': (16, 10),      # For main plots like plot 7
+    'medium_figure': (12, 8),      # For standard plots
+    'small_figure': (10, 6),       # For simple plots
+    'wide_figure': (14, 6),        # For wide plots
+    
+    # Font sizes
+    'title_size': 14,
+    'label_size': 12,
+    'tick_size': 10,
+    'legend_size': 10,
+    'annotation_size': 8,
+    
+    # Line widths
+    'line_width': 1.5,
+    'grid_alpha': 0.3,
+    'fill_alpha': 0.3,
+    
+    # DPI for saved figures
+    'dpi': 300
+}
+
+# Colorblind-friendly colors using matplotlib's built-in colorblind-safe palette
+import matplotlib.colors as mcolors
+PLOT_COLORS = list(mcolors.TABLEAU_COLORS.values())
+
 # KTH color scheme - defined once for consistency across all plots
-PLOT_COLORS = [
-    (0/255, 71/255, 145/255),   # KTH blue
-    (161/255, 89/255, 0/255),   # Orange-brown
-    (71/255, 156/255, 158/255), # Teal
-    (117/255, 0/255, 27/255),   # Deep red
-    (25/255, 75/255, 32/255),   # Dark green
-    (50/255, 50/255, 50/255),   # Dark gray
-]
+# PLOT_COLORS = [
+#     (0/255, 71/255, 145/255),   # KTH blue
+#     (161/255, 89/255, 0/255),   # Orange-brown
+#     (71/255, 156/255, 158/255), # Teal
+#     (117/255, 0/255, 27/255),   # Deep red
+#     (25/255, 75/255, 32/255),   # Dark green
+#     (50/255, 50/255, 50/255),   # Dark gray
+# ]
 
 def calculate_fixed_strategy_costs(prices, params, load_level):
     """Calculate costs for a fixed load strategy."""
@@ -149,8 +183,9 @@ def run_dynamic_optimization(prices, params):
 def create_plot_1(prices, results_100, results_10, results_dynamic, params):
     """Create plot 1: Full year electricity prices with operation zones."""
     
-    # Create date range for 2023
-    start_date = datetime(2023, 1, 1)
+    # Create date range for the given year
+    year = params.get('year', 2023)
+    start_date = datetime(year, 1, 1)
     dates = [start_date + timedelta(hours=i) for i in range(len(prices))]
     
     # A4-sized rectangular format (width > height) - smaller for better text readability
@@ -167,16 +202,17 @@ def create_plot_1(prices, results_100, results_10, results_dynamic, params):
     ax.tick_params(axis='x', rotation=45)
     
     plt.tight_layout()
-    plt.savefig('plot1 Full year 2023 electricity prices with breakeven thresholds.png', dpi=300, bbox_inches='tight')
-    print("Plot 1 saved as 'plot1 Full year 2023 electricity prices with breakeven thresholds.png'")
+    plot_path = f"plots/{year}-plot1 Full year {year} electricity prices with breakeven thresholds.png"
+    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+    print(f"Plot 1 saved as '{plot_path}'")
     
     return fig
 
 def create_plot_2(prices, results_100, results_10, results_dynamic, params):
     """Create plot 2: Monthly price distribution."""
     
-    # Create date range for 2023
-    start_date = datetime(2023, 1, 1)
+    year = params.get('year', 2023)
+    start_date = datetime(year, 1, 1)
     dates = [start_date + timedelta(hours=i) for i in range(len(prices))]
     
     # A4-sized rectangular format (width > height) - smaller for better text readability
@@ -209,8 +245,9 @@ def create_plot_2(prices, results_100, results_10, results_dynamic, params):
         cap.set_color(PLOT_COLORS[0])
     
     for flier in bp['fliers']:
-        flier.set_markerfacecolor(PLOT_COLORS[0])
+        flier.set_markerfacecolor('none')  # No fill
         flier.set_markeredgecolor(PLOT_COLORS[0])
+        flier.set_markersize(4)  # Make them slightly smaller
     
     ax.axhline(y=9.42, color=PLOT_COLORS[4], linestyle='--', label='100% Breakeven')
     ax.axhline(y=14.07, color=PLOT_COLORS[1], linestyle='--', label='10% Breakeven')
@@ -220,29 +257,33 @@ def create_plot_2(prices, results_100, results_10, results_dynamic, params):
     ax.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig('plot2 Monthly electricity price distribution with breakeven lines.png', dpi=300, bbox_inches='tight')
-    print("Plot 2 saved as 'plot2 Monthly electricity price distribution with breakeven lines.png'")
+    plot_path = f"plots/{year}-plot2 Monthly electricity price distribution with breakeven lines.png"
+    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+    print(f"Plot 2 saved as '{plot_path}'")
     
     return fig
 
 def create_plot_3(prices, results_100, results_10, results_dynamic, params):
     """Create plot 3: Price histogram."""
     
-    # A4-sized rectangular format (width > height) - smaller for better text readability
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    # Use centralized configuration
+    fig, ax = plt.subplots(1, 1, figsize=PLOT_CONFIG['small_figure'])
     
     ax.hist(prices, bins=50, alpha=0.7, color=PLOT_COLORS[0], edgecolor='black')
     ax.axvline(x=9.42, color=PLOT_COLORS[4], linestyle='--', label='100% Breakeven')
     ax.axvline(x=14.07, color=PLOT_COLORS[1], linestyle='--', label='10% Breakeven')
     ax.axvline(x=np.mean(prices), color=PLOT_COLORS[3], linestyle='-', label=f'Average')
-    ax.set_xlabel('Price (EUR/MWh)')
-    ax.set_ylabel('Frequency (hours)')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('Price (EUR/MWh)', fontsize=PLOT_CONFIG['label_size'])
+    ax.set_ylabel('Frequency (hours)', fontsize=PLOT_CONFIG['label_size'])
+    ax.legend(fontsize=PLOT_CONFIG['legend_size'])
+    ax.grid(True, alpha=PLOT_CONFIG['grid_alpha'])
+    ax.tick_params(axis='both', labelsize=PLOT_CONFIG['tick_size'])
     
+    year = params.get('year', 2023)
     plt.tight_layout()
-    plt.savefig('plot3 Electricity price histogram with statistical indicators.png', dpi=300, bbox_inches='tight')
-    print("Plot 3 saved as 'plot3 Electricity price histogram with statistical indicators.png'")
+    plot_path = f"plots/{year}-plot3 Electricity price histogram with statistical indicators.png"
+    plt.savefig(plot_path, dpi=PLOT_CONFIG['dpi'], bbox_inches='tight')
+    print(f"Plot 3 saved as '{plot_path}'")
     
     return fig
 
@@ -278,17 +319,19 @@ def create_plot_4(prices, results_100, results_10, results_dynamic, params):
             ax.text(bar.get_x() + bar.get_width()/2., height + 0.5 if height >= 0 else height - 0.5,
                      f'€{height:.1f}M', ha='center', va='bottom' if height >= 0 else 'top', fontsize=8)
     
+    year = params.get('year', 2023)
     plt.tight_layout()
-    plt.savefig('plot4 Annual economic performance comparison by strategy.png', dpi=300, bbox_inches='tight')
-    print("Plot 4 saved as 'plot4 Annual economic performance comparison by strategy.png'")
+    plot_path = f"plots/{year}-plot4 Annual economic performance comparison by strategy.png"
+    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+    print(f"Plot 4 saved as '{plot_path}'")
     
     return fig
 
 def create_plots_5_7_8_9(prices, results_100, results_10, results_dynamic, params):
     """Create plots 5, 7, 8, 9 in one image (excluding 6)."""
     
-    # Create date range for 2023
-    start_date = datetime(2023, 1, 1)
+    year = params.get('year', 2023)
+    start_date = datetime(year, 1, 1)
     dates = [start_date + timedelta(hours=i) for i in range(len(prices))]
     
     # A4-sized rectangular format (width > height) - smaller for better text readability
@@ -389,8 +432,9 @@ def create_plots_5_7_8_9(prices, results_100, results_10, results_dynamic, param
     ax9.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig('plot5 Detailed analysis cost breakdown operation profile and savings.png', dpi=300, bbox_inches='tight')
-    print("Plot 5 saved as 'plot5 Detailed analysis cost breakdown operation profile and savings.png'")
+    plot_path = f"plots/{year}-plot5 Detailed analysis cost breakdown operation profile and savings.png"
+    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+    print(f"Plot 5 saved as '{plot_path}'")
     
     return fig
 
@@ -415,7 +459,7 @@ def create_cost_per_ton_analysis(results_100, results_10, results_dynamic, param
         cost_per_ton_data.append(cost_per_ton)
     
     # Create stacked bar chart - A4-sized rectangular format (width > height) - smaller for better text readability
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    fig, ax = plt.subplots(1, 1, figsize=(12, 12))
     
     # Define colors for each cost component using KTH scheme
     colors = {
@@ -466,9 +510,11 @@ def create_cost_per_ton_analysis(results_100, results_10, results_dynamic, param
                        fontsize=8, color='white', fontweight='bold')
             bottom += value
     
+    year = params.get('year', 2023)
     plt.tight_layout()
-    plt.savefig('plot6 Cost breakdown per tonne methanol by strategy.png', dpi=300, bbox_inches='tight')
-    print("Plot 6 saved as 'plot6 Cost breakdown per tonne methanol by strategy.png'")
+    plot_path = f"plots/{year}-plot6 Cost breakdown per tonne methanol by strategy.png"
+    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+    print(f"Plot 6 saved as '{plot_path}'")
     
     # Print summary
     print("\nCOST PER TONNE ANALYSIS (100% vs Dynamic)")
@@ -491,6 +537,88 @@ def create_cost_per_ton_analysis(results_100, results_10, results_dynamic, param
     
     return fig
 
+def create_perfect_forecast_plot(prices, results_dynamic, params):
+    """Create plot 7: Perfect forecast optimization showing operational zones and power consumption."""
+    
+    # Extract dynamic operation results
+    x_100_values = results_dynamic['x_100_values']
+    x_10_values = results_dynamic['x_10_values']
+    
+    # Create figure with two subplots (stacked vertically)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=PLOT_CONFIG['large_figure'], 
+                                   gridspec_kw={'height_ratios': [2, 1], 'hspace': 0.3})
+    
+    # Upper plot: Electricity prices with operational zones
+    hours = range(len(prices))
+    
+    # Create background colors for operational zones
+    for i in range(len(prices)):
+        if x_100_values[i] > 0.5:  # 100% load operation
+            ax1.axvspan(i, i+1, alpha=PLOT_CONFIG['fill_alpha'], color='green', linewidth=0)
+        elif x_10_values[i] > 0.5:  # 10% load operation
+            ax1.axvspan(i, i+1, alpha=PLOT_CONFIG['fill_alpha'], color='orange', linewidth=0)
+        # If neither, it's shutdown (white background)
+    
+    # Plot electricity prices
+    ax1.plot(hours, prices, color='blue', linewidth=PLOT_CONFIG['line_width'], label='Electricity Price')
+    
+    # Add breakeven lines
+    ax1.axhline(y=9.42, color='green', linestyle='--', alpha=0.8, linewidth=2, label='100% Breakeven (€9.42/MWh)')
+    ax1.axhline(y=14.07, color='orange', linestyle='--', alpha=0.8, linewidth=2, label='10% Breakeven (€14.07/MWh)')
+    
+    ax1.set_ylabel('Price (EUR/MWh)', fontsize=PLOT_CONFIG['label_size'])
+    ax1.legend(loc='upper right', fontsize=PLOT_CONFIG['legend_size'])
+    ax1.grid(True, alpha=PLOT_CONFIG['grid_alpha'])
+    ax1.set_xlim(0, len(prices))
+    ax1.tick_params(axis='both', labelsize=PLOT_CONFIG['tick_size'])
+    
+    # Add custom legend for operational zones
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor='green', alpha=PLOT_CONFIG['fill_alpha'], label='100% Load'),
+        Patch(facecolor='orange', alpha=PLOT_CONFIG['fill_alpha'], label='10% Load'),
+        Patch(facecolor='white', alpha=PLOT_CONFIG['fill_alpha'], label='Shutdown', edgecolor='gray')
+    ]
+    ax1.legend(handles=legend_elements, loc='upper left', title='Operation Mode', fontsize=PLOT_CONFIG['legend_size'])
+    
+    # Lower plot: Power consumption profile
+    power_profile = []
+    for i in range(len(prices)):
+        if x_100_values[i] > 0.5:
+            power_profile.append(params["P_100"])
+        elif x_10_values[i] > 0.5:
+            power_profile.append(params["P_10"])
+        else:
+            power_profile.append(0)
+    
+    ax2.plot(hours, power_profile, color='red', linewidth=PLOT_CONFIG['line_width'], label='Power Consumption')
+    ax2.fill_between(hours, power_profile, alpha=PLOT_CONFIG['fill_alpha'], color='red')
+    
+    ax2.set_xlabel('Hour of Year', fontsize=PLOT_CONFIG['label_size'])
+    ax2.set_ylabel('Power (MW)', fontsize=PLOT_CONFIG['label_size'])
+    ax2.set_title('Power Consumption Profile', fontsize=PLOT_CONFIG['title_size'])
+    ax2.legend(fontsize=PLOT_CONFIG['legend_size'])
+    ax2.grid(True, alpha=PLOT_CONFIG['grid_alpha'])
+    ax2.set_xlim(0, len(prices))
+    ax2.set_ylim(0, max(power_profile) * 1.1)
+    ax2.tick_params(axis='both', labelsize=PLOT_CONFIG['tick_size'])
+    
+    # Format x-axis to show months
+    month_ticks = [0, 744, 1416, 2160, 2880, 3624, 4344, 5088, 5832, 6552, 7296, 8016, 8760]
+    month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', '']
+    ax1.set_xticks(month_ticks)
+    ax1.set_xticklabels(month_labels)
+    ax2.set_xticks(month_ticks)
+    ax2.set_xticklabels(month_labels)
+    
+    year = params.get('year', 2023)
+    plt.tight_layout()
+    plot_path = f"plots/{year}-plot7 Perfect forecast optimization full year operational profile.png"
+    plt.savefig(plot_path, dpi=PLOT_CONFIG['dpi'], bbox_inches='tight')
+    print(f"Plot 7 saved as '{plot_path}'")
+    
+    return fig
+
 def main():
     """Main custom analysis function."""
     
@@ -500,58 +628,58 @@ def main():
     print()
     
     # Load data
-    print("Loading full year 2023 data...")
-    params = get_parameters()
-    data = load_data()
-    prices = data['price']
-    
-    print(f"Loaded {len(prices)} hours of electricity price data")
-    print()
-    
-    # Calculate strategies
-    print("Calculating strategies...")
-    results_100 = calculate_fixed_strategy_costs(prices, params, 100)
-    results_10 = calculate_fixed_strategy_costs(prices, params, 10)
-    results_dynamic = run_dynamic_optimization(prices, params)
-    
-    if results_dynamic is None:
-        print("Dynamic optimization failed!")
-        return
-    
-    # Create custom visualizations
-    print("\nCreating custom visualizations...")
-    
-    # Individual plots 1, 2, 3
-    print("Creating plot 1...")
-    create_plot_1(prices, results_100, results_10, results_dynamic, params)
-    
-    print("Creating plot 2...")
-    create_plot_2(prices, results_100, results_10, results_dynamic, params)
-    
-    print("Creating plot 3...")
-    create_plot_3(prices, results_100, results_10, results_dynamic, params)
-    
-    # Plot 4 separately
-    print("Creating plot 4...")
-    create_plot_4(prices, results_100, results_10, results_dynamic, params)
-    
-    # Plots 5, 7, 8, 9 in one image (excluding 6)
-    print("Creating plots 5, 7, 8, 9...")
-    create_plots_5_7_8_9(prices, results_100, results_10, results_dynamic, params)
-    
-    # New cost per ton analysis (100% vs Dynamic only)
-    print("Creating cost per ton analysis...")
-    create_cost_per_ton_analysis(results_100, results_10, results_dynamic, params)
-    
-    print("\nCUSTOM ANALYSIS COMPLETE!")
-    print("=" * 60)
-    print("Generated files:")
-    print("• plot1 Full year 2023 electricity prices with breakeven thresholds.png")
-    print("• plot2 Monthly electricity price distribution with breakeven lines.png")
-    print("• plot3 Electricity price histogram with statistical indicators.png")
-    print("• plot4 Annual economic performance comparison by strategy.png")
-    print("• plot5 Detailed analysis cost breakdown operation profile and savings.png")
-    print("• plot6 Cost breakdown per tonne methanol by strategy.png")
+    for year in [2023, 2022, 2021]:
+        print(f"\nLoading full year {year} data...")
+        params = get_parameters()
+        params['year'] = year
+        data_file = f"electricity_data/elspot_prices_{year}.xlsx"
+        if not os.path.exists(data_file):
+            print(f"Data file for {year} not found: {data_file}")
+            continue
+        data = load_data(data_file)
+        prices = data['price']
+
+        print(f"Loaded {len(prices)} hours of electricity price data for {year}")
+
+        # Calculate strategies
+        print("Calculating strategies...")
+        results_100 = calculate_fixed_strategy_costs(prices, params, 100)
+        results_10 = calculate_fixed_strategy_costs(prices, params, 10)
+        results_dynamic = run_dynamic_optimization(prices, params)
+
+        if results_dynamic is None:
+            print("Dynamic optimization failed!")
+            continue
+
+        # Create custom visualizations
+        print("\nCreating custom visualizations...")
+
+        print("Creating plot 1...")
+        create_plot_1(prices, results_100, results_10, results_dynamic, params)
+
+        print("Creating plot 2...")
+        create_plot_2(prices, results_100, results_10, results_dynamic, params)
+
+        print("Creating plot 3...")
+        create_plot_3(prices, results_100, results_10, results_dynamic, params)
+
+        print("Creating plot 4...")
+        create_plot_4(prices, results_100, results_10, results_dynamic, params)
+
+        print("Creating plots 5, 7, 8, 9...")
+        create_plots_5_7_8_9(prices, results_100, results_10, results_dynamic, params)
+
+        print("Creating cost per ton analysis...")
+        create_cost_per_ton_analysis(results_100, results_10, results_dynamic, params)
+
+        print("Creating perfect forecast optimization plot...")
+        create_perfect_forecast_plot(prices, results_dynamic, params)
+
+        print(f"\nCUSTOM ANALYSIS FOR {year} COMPLETE!")
+        print("=" * 60)
+        print("Generated files:")
+        for i in range(1,8):
+            print(f"• plots/{year}-plot{i} ...png")
 
 if __name__ == "__main__":
     main()
