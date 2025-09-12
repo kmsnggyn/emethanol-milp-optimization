@@ -1,0 +1,27 @@
+% TikZ plot for operational metrics
+\begin{tikzpicture}
+\begin{axis}[
+    title={Capacity Utilization by Year},
+    xlabel={Year},
+    ylabel={Capacity Utilization (\%)},
+    ybar,
+    bar width=20pt,
+    width=10cm,
+    height=6cm,
+    xtick=data,
+    xticklabels={2020, 2021, 2022, 2023},
+    nodes near coords,
+    nodes near coords align={vertical},
+    grid=major,
+    legend pos=north west,
+]
+
+\addplot[fill=orange,draw=black] coordinates {
+    (2020, 98.5)
+    (2021, 75.9)
+    (2022, 48.2)
+    (2023, 75.7)
+};
+
+\end{axis}
+\end{tikzpicture}

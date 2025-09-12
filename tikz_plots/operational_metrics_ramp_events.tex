@@ -1,0 +1,27 @@
+% TikZ plot for operational metrics
+\begin{tikzpicture}
+\begin{axis}[
+    title={Annual Ramp Events by Year},
+    xlabel={Year},
+    ylabel={Number of Ramp Events},
+    ybar,
+    bar width=20pt,
+    width=10cm,
+    height=6cm,
+    xtick=data,
+    xticklabels={2020, 2021, 2022, 2023},
+    nodes near coords,
+    nodes near coords align={vertical},
+    grid=major,
+    legend pos=north west,
+]
+
+\addplot[fill=blue,draw=black] coordinates {
+    (2020, 45.0)
+    (2021, 424.0)
+    (2022, 1015.0)
+    (2023, 372.0)
+};
+
+\end{axis}
+\end{tikzpicture}

@@ -1,0 +1,51 @@
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm,
+    auto,
+    block/.style={rectangle, draw, rounded corners, text width=2.5cm, text centered, minimum height=1.5cm},
+    input/.style={block, fill=blue!20},
+    process/.style={block, fill=green!20},
+    output/.style={block, fill=orange!20},
+    decision/.style={diamond, draw, text width=1.8cm, text centered, minimum height=1.5cm, fill=yellow!20},
+    arrow/.style={-{Stealth[length=3mm]}, thick}
+]
+
+% Input nodes
+\node[input] (elec) {Electricity\\Price Signal};
+\node[input, below=of elec] (co2) {CO$_2$\\Supply};
+\node[input, below=of co2] (water) {Water\\Supply};
+
+% Decision node
+\node[decision, right=3cm of elec] (optimizer) {MILP\\Optimizer};
+
+% Process nodes
+\node[process, right=3cm of optimizer] (electrolyzer) {Electrolyzer\\(0-100\%)};
+\node[process, below=of electrolyzer] (synthesis) {Methanol\\Synthesis};
+
+% Output nodes
+\node[output, right=2cm of electrolyzer] (h2) {H$_2$\\Production};
+\node[output, right=2cm of synthesis] (methanol) {Methanol\\Product};
+
+% Control signals
+\node[above=0.5cm of electrolyzer] (control) {\footnotesize Load Level};
+
+% Arrows
+\draw[arrow] (elec) -- (optimizer);
+\draw[arrow] (optimizer) -- (electrolyzer);
+\draw[arrow] (optimizer) |- (control);
+\draw[arrow] (co2) -| (synthesis);
+\draw[arrow] (water) -| (electrolyzer);
+\draw[arrow] (electrolyzer) -- (h2);
+\draw[arrow] (electrolyzer) -- (synthesis);
+\draw[arrow] (synthesis) -- (methanol);
+
+% Labels
+\node[below=0.2cm of optimizer] {\footnotesize Binary Decision};
+\node[right=0.2cm of control] {\footnotesize 100\% or 10\%};
+
+\end{tikzpicture}
+\caption{E-methanol plant with MILP optimization control system}
+\label{fig:process-flow}
+\end{figure}
